@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editor P2P: C, DOG & Chicken</title>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <style>
+        :root { --bg: #f3f4f6; --panel: #ffffff; --text: #0f172a; --accent: #2563eb; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; display: flex; justify-content: center; }
+        .container { max-width: 1000px; width: 100%; display: grid; gap: 20px; }
+        
+        #login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 100; }
+        .login-box { background: white; padding: 30px; border-radius: 10px; text-align: center; width: 300px; }
+        .color-picker { width: 100%; height: 40px; border: none; cursor: pointer; margin: 10px 0; }
+
+        .connection-panel { background: #dbeafe; padding: 15px; border-radius: 8px; border: 1px solid #bfdbfe; }
+        .id-display { background: white; padding: 5px 10px; border-radius: 4px; font-weight: bold; font-family: monospace; user-select: all; }
+        .btn { background: var(--accent); color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 5px;}
+        .input-id { padding: 8px; border-radius: 5px; border: 1px solid #ccc; width: 200px; }
+
+        .editor-wrapper { position: relative; background: var(--panel); padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+
+        textarea { 
+            width: 100%; height: 400px; font-family: 'Courier New', monospace; font-size: 16px; line-height: 24px;
+            border: 2px solid #ccc; border-radius: 5px; padding: 10px; resize: none; box-sizing: border-box; outline: none; 
+            /* CORRECCIÓN: 'pre' evita que el texto se rompa visualmente, vital para Chicken */
+            white-space: pre; 
+            overflow-x: auto; 
+            overflow-y: scroll;
+        }
+
+        .console { background: #1e293b; color: #4ade80; padding: 15px; border-radius: 10px; margin-top: 10px; font-family: monospace; min-height: 80px; white-space: pre-wrap; word-break: break-all;}
+
+        .remote-cursor { position: absolute; pointer-events: none; transition: top 0.1s, left 0.1s; z-index: 10; display: block; }
+        .cursor-bar { width: 2px; height: 24px; background-color: red; }
+        .cursor-name-tag { position: absolute; top: -22px; left: -2px; background-color: red; color: white; padding: 2px 6px; border-radius: 4px; font-size: 12px; white-space: nowrap; font-weight: bold; }
+
+        #mirror-div {
+            position: absolute; top: 0; left: 0; visibility: hidden; white-space: pre-wrap; word-wrap: break-word;
+            font-family: 'Courier New', monospace; font-size: 16px; line-height: 24px; padding: 10px;
+            border: 2px solid transparent; width: 100%; box-sizing: border-box; pointer-events: none;
+        }
+
+        .example-toolbar { display: flex; gap: 10px; margin-bottom: 5px; align-items: center; }
+        .example-label { font-size: 0.9em; font-weight: bold; color: #64748b; }
+        .btn-sm { padding: 5px 10px; font-size: 0.85em; cursor: pointer; border: 1px solid #ccc; border-radius: 4px; background: #fff; transition: background 0.2s; }
+        .btn-sm:hover { background: #e2e8f0; }
+
+        .exec-controls { display: flex; gap: 10px; margin-top: 5px; }
+        .btn-c { background-color: #10b981; flex: 1; }
+        .btn-dog { background-color: #d97706; flex: 1; }
+        .btn-dog:hover { background-color: #b45309; }
+        .btn-chicken { background-color: #f1c40f; color: black; flex: 1; }
+        .btn-chicken:hover { background-color: #d4ac0d; }
+    </style>
+</head>
+<body>
+
+<div id="login-overlay">
+    <div class="login-box">
+        <h2>Editor Multi-Lenguaje P2P</h2>
+        <input type="text" id="my-name-input" placeholder="Tu Nombre" style="width: 90%; padding: 8px; margin-bottom: 10px;">
+        <input type="color" id="my-color-input" class="color-picker" value="#2563eb">
+        <button class="btn" onclick="startGame()">Entrar</button>
+    </div>
+</div>
+
+<div class="container">
+    <div class="connection-panel">
+        <p><strong><span id="display-name">Usuario</span></strong> | Conectados: <span id="users-count">0</span></p>
+        <div id="my-id" class="id-display">Generando ID...</div>
+        
+        <div style="margin-top: 15px; border-top: 1px solid #bfdbfe; padding-top: 10px;">
+            <p style="font-size: 0.8rem; margin-bottom:5px">Si eres Host, da tu ID. Si no, pégalo abajo:</p>
+            <input type="text" id="remote-id" class="input-id" placeholder="ID del Host">
+            <button class="btn" onclick="connectToPeer()">Conectar</button>
+        </div>
+        <p id="status-text" style="color: orange; font-weight: bold; margin-top: 10px;">Esperando...</p>
+    </div>
+
+    <!-- BARRA DE EJEMPLOS -->
+    <div class="example-toolbar">
+        <span class="example-label">Cargar Ejemplo:</span>
+        <button class="btn-sm" onclick="loadExample('c')">📄 C (Scanf/Printf)</button>
+        <button class="btn-sm" onclick="loadExample('dog')">🐶 DOG (Bucles)</button>
+        <button class="btn-sm" onclick="loadExample('chicken')">🐔 Chicken (Hello World)</button>
+    </div>
+
+    <div class="editor-wrapper">
+        <div id="mirror-div"></div>
+        <div id="cursors-container"></div>
+        
+        <textarea id="code-editor" spellcheck="false">bark "Hola. Probemos los 3 lenguajes!\n"
+fetch 5
+drop dish1
+dish1 bark "Guau! "
+</textarea>
+    </div>
+
+    <div class="exec-controls">
+        <button class="btn btn-c" onclick="runCode()">▶ Ejecutar C</button>
+        <button class="btn btn-dog" onclick="runDogCode()">🐶 Ejecutar DOG</button>
+        <button class="btn btn-chicken" onclick="runChickenCode()">🐔 Ejecutar Chicken</button>
+    </div>
+    
+    <div class="console" id="output-console">// La salida aparecerá aquí...</div>
+</div>
+
+<script>
+
+    const chickenExampleCode = `chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken
+chicken chicken chicken chicken chicken chicken chicken chicken chicken
+chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken
+chicken chicken chicken chicken chicken chicken chicken chicken chicken
+chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken
+chicken chicken chicken chicken chicken chicken chicken chicken chicken
+chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken
+chicken chicken chicken chicken chicken chicken chicken chicken chicken
+chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken
+chicken chicken chicken chicken chicken chicken chicken chicken chicken
+chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken
+chicken chicken chicken chicken chicken chicken chicken chicken chicken
+chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken
+chicken chicken chicken chicken chicken chicken chicken chicken chicken
+chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken
+chicken chicken chicken chicken chicken chicken chicken chicken chicken
+chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken
+chicken chicken chicken chicken chicken chicken chicken chicken chicken
+chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken
+chicken chicken chicken chicken chicken chicken chicken chicken chicken
+chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken chicken
+chicken chicken chicken chicken chicken chicken chicken chicken chicken`;
+
+    const codeExamples = {
+        c: `#include <stdio.h>
+
+int main() {
+    int edad;
+    int anio_actual = 2025;
+    int nacimiento;
+
+    printf("--- Calculadora de Nacimiento en C ---\\n");
+    printf("Por favor, ingresa tu edad: ");
+    
+    // El sistema te pedira el dato mediante un prompt
+    scanf("%d", &edad);
+
+    nacimiento = anio_actual - edad;
+
+    printf("Naciste aproximadamente en: %d\\n", nacimiento);
+    
+    if (edad > 18) {
+        printf("Eres mayor de edad.\\n");
+    }
+    
+    return 0;
+}`,
+        dog: `0 Ejemplo DOG: Tablas
+bark "Cuantas veces ladro? "
+take
+drop dish1
+
+bark "Ladrando...\\n"
+
+dish1 bark "Woof! "
+dish1 bark "\\n"
+
+bark "Terminado."
+give`,
+        chicken: chickenExampleCode
+    };
+
+    function loadExample(lang) {
+        if(confirm("¿Cargar ejemplo de " + lang.toUpperCase() + "?")) {
+            const editor = document.getElementById('code-editor');
+            editor.value = codeExamples[lang];
+            sendMyData(); 
+        }
+    }
+
+    // LÓGICA P2P
+    let myProfile = { name: "Anónimo", color: "#2563eb", id: null };
+    let peer = null;
+    let connections = []; 
+
+    const editor = document.getElementById('code-editor');
+    const statusText = document.getElementById('status-text');
+    const cursorsContainer = document.getElementById('cursors-container');
+    let isReceiving = false;
+
+    function startGame() {
+        const name = document.getElementById('my-name-input').value || "Anon";
+        const color = document.getElementById('my-color-input').value;
+        myProfile.name = name;
+        myProfile.color = color;
+        
+        document.getElementById('display-name').textContent = name;
+        document.getElementById('display-name').style.color = color;
+        document.getElementById('code-editor').style.borderColor = color;
+        document.getElementById('login-overlay').style.display = 'none';
+        initPeer();
+    }
+
+    function initPeer() {
+        peer = new Peer(null, { debug: 2 });
+        peer.on('open', (id) => {
+            myProfile.id = id;
+            document.getElementById('my-id').textContent = id;
+            statusText.textContent = "Soy el Host (esperando conexiones)";
+        });
+        peer.on('connection', (conn) => { setupConnection(conn); });
+    }
+
+    function connectToPeer() {
+        const remoteId = document.getElementById('remote-id').value.trim();
+        if(!remoteId) return alert("Falta el ID");
+        statusText.textContent = "Conectando al Host...";
+        const conn = peer.connect(remoteId);
+        setupConnection(conn);
+    }
+
+    function setupConnection(conn) {
+        connections.push(conn);
+        updateUserCount();
+
+        conn.on('open', () => {
+            statusText.textContent = "¡Conectado!";
+            statusText.style.color = "green";
+            if(editor.value.length > 50) { 
+                conn.send({ type: 'code', code: editor.value, profile: myProfile });
+            }
+        });
+
+        conn.on('data', (data) => { handleIncomingData(data, conn); });
+
+        conn.on('close', () => {
+            connections = connections.filter(c => c !== conn);
+            removeCursor(conn.peer); 
+            updateUserCount();
+        });
+    }
+
+    function handleIncomingData(data, senderConn) {
+        if (data.type === 'code') {
+            isReceiving = true;
+            const cursorStart = editor.selectionStart;
+            const cursorEnd = editor.selectionEnd;
+            editor.value = data.code;
+            editor.selectionStart = cursorStart;
+            editor.selectionEnd = cursorEnd;
+
+            const senderId = data.profile.id || senderConn.peer;
+            updateRemoteCursor(data.cursorPos, data.profile, senderId);
+            isReceiving = false;
+            broadcastData(data, senderConn);
+        }
+    }
+
+    function broadcastData(data, exceptConn) {
+        connections.forEach(conn => {
+            if (conn !== exceptConn && conn.open) {
+                conn.send(data);
+            }
+        });
+    }
+
+    function sendMyData() {
+        const data = {
+            type: 'code',
+            code: editor.value,
+            cursorPos: editor.selectionStart,
+            profile: myProfile
+        };
+        connections.forEach(conn => { if (conn.open) conn.send(data); });
+    }
+
+    editor.addEventListener('input', () => { if (!isReceiving) sendMyData(); });
+    editor.addEventListener('keyup', () => { if (!isReceiving) sendMyData(); });
+    editor.addEventListener('click', () => { if (!isReceiving) sendMyData(); });
+
+    // CURSORES VISUALES
+    function updateRemoteCursor(pos, profile, userId) {
+        let cursorEl = document.getElementById('cursor-' + userId);
+        if (!cursorEl) {
+            cursorEl = document.createElement('div');
+            cursorEl.id = 'cursor-' + userId;
+            cursorEl.className = 'remote-cursor';
+            cursorEl.innerHTML = `<div class="cursor-name-tag"></div><div class="cursor-bar"></div>`;
+            cursorsContainer.appendChild(cursorEl);
+        }
+
+        const bar = cursorEl.querySelector('.cursor-bar');
+        const tag = cursorEl.querySelector('.cursor-name-tag');
+        bar.style.backgroundColor = profile.color;
+        tag.style.backgroundColor = profile.color;
+        tag.textContent = profile.name;
+
+        // Cálculo de posición
+        const mirror = document.getElementById('mirror-div');
+        const subText = editor.value.substring(0, pos);
+        mirror.textContent = subText;
+        const span = document.createElement('span');
+        span.textContent = "|";
+        mirror.appendChild(span);
+
+        const rect = span.getBoundingClientRect();
+        const editorRect = editor.getBoundingClientRect();
+        const top = rect.top - editorRect.top + editor.scrollTop;
+        const left = rect.left - editorRect.left + editor.scrollLeft;
+
+        cursorEl.style.top = (top + 30) + "px"; 
+        cursorEl.style.left = (left + 30) + "px";
+    }
+
+    function removeCursor(userId) {
+        const el = document.getElementById('cursor-' + userId);
+        if (el) el.remove();
+    }
+
+    function updateUserCount() {
+        document.getElementById('users-count').textContent = connections.length;
+    }
+
+    // EJECUTAR C
+
+    function runCode() {
+        const out = document.getElementById('output-console');
+        out.textContent = "Compilando gcc main.c -o main ...";
+        out.style.color = "#fbbf24";
+
+        setTimeout(() => {
+            const code = editor.value;
+            const cInterpreter = new SimpleCInterpreter(code);
+            try {
+                const result = cInterpreter.run();
+                out.textContent = result;
+                out.style.color = "#4ade80";
+            } catch (e) {
+                out.textContent = "Error: " + e.message;
+                out.style.color = "#ef4444";
+            }
+        }, 500);
+    }
+
+    class SimpleCInterpreter {
+        constructor(source) {
+            this.source = source;
+            this.variables = {};
+            this.output = "";
+        }
+        run() {
+            const lines = this.source.split('\n');
+            let insideMain = false;
+            for (let i = 0; i < lines.length; i++) {
+                let rawLine = lines[i].trim();
+                if (rawLine.includes('//')) rawLine = rawLine.split('//')[0].trim();
+                if (!rawLine) continue;
+                if (rawLine.includes('int main')) { insideMain = true; continue; }
+                if (rawLine === '}' || rawLine === 'return 0;') { insideMain = false; continue; }
+                if (!insideMain) continue;
+                if (rawLine.startsWith('int ')) {
+                    const parts = rawLine.substring(4).replace(';', '').split('=');
+                    const varName = parts[0].trim();
+                    let value = 0;
+                    if (parts.length > 1) value = this.evaluateExpression(parts[1]);
+                    this.variables[varName] = value;
+                }
+                else if (rawLine.startsWith('scanf')) {
+                    const match = rawLine.match(/&([a-zA-Z0-9_]+)/);
+                    if (match) {
+                        const varName = match[1];
+                        const userInput = prompt(`Scanf (${varName}):`);
+                        this.variables[varName] = parseInt(userInput) || 0;
+                    }
+                }
+                else if (rawLine.startsWith('printf')) {
+                    const contentMatch = rawLine.match(/\((.*)\)/); 
+                    if (contentMatch) {
+                        let content = contentMatch[1];
+                        const args = content.split(','); 
+                        let formatStr = args[0].trim().replace(/^"|"$/g, '');
+                        if (args.length > 1) {
+                            for (let k = 1; k < args.length; k++) {
+                                const varName = args[k].trim();
+                                const val = this.variables[varName] !== undefined ? this.variables[varName] : 0;
+                                formatStr = formatStr.replace('%d', val);
+                            }
+                        }
+                        this.output += formatStr.replace(/\\n/g, '\n');
+                    }
+                }
+                else if (rawLine.startsWith('if')) {
+                    const condMatch = rawLine.match(/\((.*)\)/);
+                    if(condMatch && !this.evaluateExpression(condMatch[1])) {
+                        i += 2; 
+                    }
+                }
+                else if (rawLine.indexOf('=') > -1) {
+                    const parts = rawLine.replace(';', '').split('=');
+                    const varName = parts[0].trim();
+                    if (this.variables[varName] !== undefined) this.variables[varName] = this.evaluateExpression(parts[1]);
+                }
+            }
+            return this.output || "> Sin salida";
+        }
+        evaluateExpression(expr) {
+            let evalStr = expr;
+            for (const [key, val] of Object.entries(this.variables)) {
+                const regex = new RegExp(`\\b${key}\\b`, 'g');
+                evalStr = evalStr.replace(regex, val);
+            }
+            try { return eval(evalStr); } catch (e) { return 0; }
+        }
+    }
+
+    // EJECUTAR DOG
+
+    function runDogCode() {
+        const out = document.getElementById('output-console');
+        out.textContent = "Ejecutando DOG...";
+        out.style.color = "#d97706";
+        setTimeout(() => {
+            const code = editor.value;
+            const dog = new SimpleDogInterpreter(code);
+            const result = dog.run();
+            out.textContent = result;
+            out.style.color = "#fcd34d"; 
+        }, 100);
+    }
+
+    class SimpleDogInterpreter {
+        constructor(source) {
+            this.mouth = 0;
+            this.dishes = new Array(10).fill(0);
+            this.plates = new Array(10).fill(0);
+            this.floor = [];
+            this.output = "";
+            this.lines = source.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('0'));
+            this.labels = {};
+            this.lines.forEach((line, idx) => {
+                if (line.startsWith('label ')) this.labels[line.substring(6).trim()] = idx;
+            });
+        }
+        getVal(ref) {
+            if (!ref) return 0;
+            if (!isNaN(ref)) return parseInt(ref);
+            if (ref.startsWith('dish')) return this.dishes[parseInt(ref.replace('dish',''))];
+            if (ref.startsWith('plate')) return this.plates[parseInt(ref.replace('plate',''))];
+            if (ref === 'floor') {
+                const nz = this.floor.filter(x => x !== 0);
+                return nz.length ? nz[Math.floor(Math.random() * nz.length)] : 0;
+            }
+            return 0;
+        }
+        run() {
+            let ip = 0, safety = 0;
+            while (ip < this.lines.length) {
+                if (safety++ > 50000) return this.output + "\n\n[Loop Infinito]";
+                const line = this.lines[ip];
+                if (line.startsWith('label ')) { ip++; continue; }
+                const parts = line.match(/^((?:dish\d|plate\d|floor|\d+)\s+)?([a-z]+)(?:\s+(.*))?$/);
+                if (!parts) { ip++; continue; }
+                let prefix = parts[1] ? parts[1].trim() : null;
+                let cmd = parts[2], args = parts[3], loops = 1;
+                if (prefix) {
+                    if (!isNaN(prefix)) loops = parseInt(prefix);
+                    else if (prefix.startsWith('dish')) loops = this.getVal(prefix);
+                    else if (prefix.startsWith('plate')) loops = this.getVal(prefix) !== 0 ? 1 : 0;
+                    else if (prefix === 'floor') loops = this.getVal('floor');
+                }
+                if (loops === 0) { ip++; continue; }
+                for (let i = 0; i < loops; i++) {
+                    if (cmd === 'jump') { if (this.labels[args] !== undefined) { ip = this.labels[args]; loops = 0; ip--; } break; }
+                    if (cmd === 'die') return this.output + "\n[DOG Died]";
+                    switch(cmd) {
+                        case 'fetch': this.mouth += this.getVal(args); break;
+                        case 'eat': this.mouth -= (args ? this.getVal(args) : this.mouth); break;
+                        case 'drop':
+                            if (args === 'floor') this.floor.push(this.mouth);
+                            else if (args.startsWith('dish')) this.dishes[parseInt(args.substring(4))] += this.mouth;
+                            else if (args.startsWith('plate')) this.plates[parseInt(args.substring(5))] += this.mouth;
+                            this.mouth = 0; break;
+                        case 'pickup':
+                            if (args === 'floor') {
+                                const idxs = this.floor.map((v,k)=>v!==0?k:-1).filter(k=>k!==-1);
+                                if(idxs.length) { const r = idxs[Math.floor(Math.random()*idxs.length)]; this.mouth += this.floor[r]; this.floor.splice(r,1); }
+                            } else {
+                                this.mouth += this.getVal(args);
+                                if (args.startsWith('dish')) this.dishes[parseInt(args.substring(4))] = 0;
+                                if (args.startsWith('plate')) this.plates[parseInt(args.substring(5))] = 0;
+                            } break;
+                        case 'clear':
+                            if (args === 'floor') this.floor = [];
+                            else if (args.startsWith('dish')) this.dishes[parseInt(args.substring(4))] = 0;
+                            else if (args.startsWith('plate')) this.plates[parseInt(args.substring(5))] = 0; break;
+                        case 'bark': this.output += args.replace(/^"|"$/g, '').replace(/\\n/g, '\n'); break;
+                        case 'show': this.output += this.mouth; break;
+                        case 'give': this.output += this.mouth; this.mouth = 0; break;
+                        case 'take': 
+                            const val = prompt("DOG Input (take):");
+                            if(val && !isNaN(val)) this.mouth += parseInt(val); break;
+                    }
+                }
+                ip++;
+            }
+            return this.output || "[Sin salida]";
+        }
+    }
+
+
+    // EJECUTAR CHICKEN
+
+    function runChickenCode() {
+        const out = document.getElementById('output-console');
+        out.textContent = "Iniciando Chicken VM...";
+        out.style.color = "#f1c40f"; 
+
+        setTimeout(() => {
+            const source = editor.value;
+            let outputBuffer = "";
+            let lines = source.split(/\r\n|\r|\n/);
+            
+            // Limpieza solo del final para evitar exit prematuro
+            while(lines.length > 0 && lines[lines.length-1].trim() === "") {
+                lines.pop();
+            }
+
+            // Convertir "chickens" a opcodes
+            let memory = lines.map(line => (line.match(/chicken/gi) || []).length);
+            
+            // Debug inicial para ver si lee bien
+            out.textContent = "Procesando " + memory.length + " instrucciones Chicken...\n";
+
+            const safePop = (arr) => {
+                if (arr.length === 0) return 0;
+                let val = arr.pop();
+                if (val === "chicken") return 0; 
+                return Number(val) || 0;
+            };
+
+            let IP = 0;
+            let cycles = 0;
+            const MAX_CYCLES = 15000;
+
+            try {
+                while (IP < memory.length) {
+                    if (cycles++ > MAX_CYCLES) throw new Error("Loop infinito.");
+                    let opcode = memory[IP];
+                    IP++; 
+                    if (opcode === 0) break; // EXIT
+                    
+                    if (opcode === 1) memory.push("chicken");
+                    else if (opcode >= 2 && opcode <= 5) {
+                        let b = safePop(memory);
+                        let a = safePop(memory);
+                        let res = 0;
+                        if (opcode === 2) res = a + b;
+                        if (opcode === 3) res = a - b;
+                        if (opcode === 4) res = a * b;
+                        if (opcode === 5) res = (a === b) ? 1 : 0;
+                        memory.push(res);
+                    }
+                    else if (opcode === 6) { // LOAD
+                        let addr = safePop(memory);
+                        memory.push(memory[addr] !== undefined ? memory[addr] : 0);
+                    }
+                    else if (opcode === 7) { // STORE
+                        let addr = safePop(memory);
+                        let val = safePop(memory);
+                        memory[addr] = val; 
+                    }
+                    else if (opcode === 8) { // JUMP
+                        let offset = safePop(memory);
+                        let cond = safePop(memory);
+                        if (cond !== 0) IP += offset;
+                    }
+                    else if (opcode === 9) { // CHAR OUT
+                        let val = safePop(memory);
+                        let char = (typeof val === 'number') ? String.fromCharCode(val) : val;
+                        outputBuffer += char;
+                    }
+                    else if (opcode >= 10) { // PUSH Literal
+                        memory.push(opcode - 10);
+                    }
+                }
+                
+                if (outputBuffer === "") outputBuffer = "[Chicken terminado sin salida]";
+                out.textContent = outputBuffer;
+                out.style.color = "#f1c40f";
+
+            } catch (e) {
+                out.textContent = "Error Chicken: " + e.message;
+                out.style.color = "#e74c3c"; 
+            }
+
+        }, 100);
+    }
+</script>
+
+</body>
+</html>
