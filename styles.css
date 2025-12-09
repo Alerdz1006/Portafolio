@@ -1,16 +1,14 @@
-/* --- 1. Variables y Reset Básico --- */
 :root {
-    --primary-color: #007bff; /* Color de acento principal */
-    --secondary-color: #3f51b5; /* Un color secundario, usado en botones o acentos */
-    --bg-color: #212121; /* Fondo principal oscuro */
-    --card-bg: #303030; /* Fondo de tarjetas o secciones claras */
-    --text-color: #ffffff; /* Texto principal claro */
-    --text-muted: #b0b0b0; /* Texto secundario o gris */
+    --primary-color: #007bff;
+    --secondary-color: #3f51b5;
+    --bg-color: #212121;
+    --card-bg: #303030;
+    --text-color: #ffffff;
+    --text-muted: #b0b0b0;
     --font-family: 'Arial', sans-serif;
     --padding-section: 60px 0;
 }
 
-/* Reset */
 * {
     margin: 0;
     padding: 0;
@@ -34,7 +32,6 @@ ul {
     list-style: none;
 }
 
-/* Contenedor centralizado */
 .container {
     max-width: 1200px;
     margin: 0 auto;
@@ -45,7 +42,6 @@ ul {
     padding: var(--padding-section);
 }
 
-/* --- 2. Cabecera y Navegación (Header & Nav) --- */
 header {
     background-color: var(--card-bg);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
@@ -83,7 +79,7 @@ nav {
 }
 
 .nav-toggle {
-    display: none; /* Oculto en escritorio */
+    display: none;
     background: none;
     border: none;
     color: var(--text-color);
@@ -91,7 +87,6 @@ nav {
     cursor: pointer;
 }
 
-/* --- 3. Sección Hero (Inicio) --- */
 .hero {
     background-color: #1a1a1a;
     padding: 100px 0;
@@ -128,7 +123,6 @@ nav {
     color: var(--text-muted);
 }
 
-/* ESTILO DE LA IMAGEN DE PERFIL REAL */
 .hero-image .profile-img {
     width: 250px;
     height: 250px; 
@@ -153,8 +147,6 @@ nav {
     color: var(--primary-color);
 }
 
-
-/* --- 4. Sección de Habilidades (Skills) --- */
 .skills {
     text-align: center;
     background-color: var(--bg-color);
@@ -186,7 +178,6 @@ nav {
     background-color: var(--secondary-color);
 }
 
-/* --- 5. Sección de Proyectos (Projects) --- */
 .projects {
     background-color: var(--card-bg);
     text-align: center;
@@ -236,7 +227,7 @@ nav {
 
 .project-tags {
     margin: 15px 0;
-    min-height: 40px; /* Ayuda a alinear las tarjetas */
+    min-height: 40px;
 }
 
 .tag {
@@ -262,7 +253,7 @@ nav {
     font-weight: bold;
     text-align: center;
     transition: background-color 0.3s;
-    flex: 1; /* Ocupa espacio equitativo */
+    flex: 1;
 }
 
 .btn-primary {
@@ -283,7 +274,6 @@ nav {
     background-color: #304192;
 }
 
-/* --- 6. Pie de Página (Footer) --- */
 footer {
     background-color: #1a1a1a;
     padding: 20px 0;
@@ -292,7 +282,6 @@ footer {
     border-top: 1px solid #333;
 }
 
-/* --- 7. Estilos del Modal de Vista Previa --- */
 .modal {
     display: none; 
     position: fixed;
@@ -303,7 +292,6 @@ footer {
     height: 100%;
     overflow: auto;
     background-color: rgba(0,0,0,0.9);
-    /* Usado para centrar el modal con JS */
     justify-content: center;
     align-items: center;
 }
@@ -347,8 +335,6 @@ footer {
     border: 1px solid #444;
 }
 
-
-/* --- 8. Responsive Design (Media Queries) --- */
 @media (max-width: 900px) {
     .hero-content {
         flex-direction: column;
@@ -414,7 +400,6 @@ footer {
         flex-direction: column;
     }
     
-    /* Ajuste para que el modal no sea demasiado grande en móvil */
     .modal-content {
         width: 95%;
         margin: 2.5vh auto;
