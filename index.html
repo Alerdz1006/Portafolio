@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portafolio | Alejandro Rodriguez</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+
+    <header>
+        <nav class="container">
+            <a href="#" class="logo">Alejandro Rodriguez</a>
+            <button class="nav-toggle" aria-label="Abrir menú" id="nav-toggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            <ul class="nav-menu" id="nav-menu">
+                <li><a href="#inicio">Inicio</a></li>
+                <li><a href="#habilidades">Habilidades</a></li>
+                <li><a href="#proyectos">Proyectos</a></li>
+                <li><a href="#contacto">Contacto</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section id="inicio" class="hero">
+            <div class="container hero-content">
+                <div class="hero-text">
+                    <h1>Hola, soy Alejandro Rodriguez</h1>
+                    <h2>Arquitecto de Soluciones Web & Backend</h2>
+                    <p>Estudiante de Ingeniería dedicado al desarrollo de sistemas robustos y la gestión eficiente de datos. Mi expertise se centra en la construcción de APIs y lógica de negocio con PHP, la manipulación dinámica del DOM con JavaScript, y la optimización de esquemas y consultas de Base de Datos para garantizar la integridad y el rendimiento del sistema.</p>
+                    <div class="social-links">
+                        <a href="https://github.com/Alerdz1006" target="_blank" aria-label="Perfil de GitHub"><i class="fab fa-github"></i></a>
+                        <a href="https://www.linkedin.com/in/manuel-alejandro-rodriguez-resendiz-6a253b399/" target="_blank" aria-label="Perfil de LinkedIn"><i class="fab fa-linkedin"></i></a>
+                    </div>
+                </div>
+                <div class="hero-image">
+                    <img src="yo.jpg" alt="Foto de Perfil de Alejandro Rodriguez" class="profile-img">
+                </div>
+            </div>
+        </section>
+
+        <section id="habilidades" class="skills section-padding">
+            <div class="container">
+                <h2>Tecnologías</h2>
+                <div class="skills-grid">
+                    <span class="skill-badge">PHP</span>
+                    <span class="skill-badge">MySQL / SQL</span>
+                    <span class="skill-badge">JavaScript (ES6+)</span>
+                    <span class="skill-badge">Base de Datos (Diseño & Optimización)</span>
+                    <span class="skill-badge">Git & Control de Versiones</span>
+                    <span class="skill-badge">HTML5 / CSS3</span>
+                    <span class="skill-badge">APIs RESTful</span>
+                    <span class="skill-badge">Algoritmos Eficientes</span>
+                </div>
+            </div>
+        </section>
+
+        <section id="proyectos" class="projects section-padding">
+            <div class="container">
+                <h2>Proyectos Académicos</h2>
+                <p class="subtitle">Selecciona el botón de cada tarjeta para una vista previa.</p>
+
+                <div class="projects-grid">
+                    
+                    <div class="project-card">
+                        <h3>Sistema de Ventas (DOM)</h3>
+                        <p class="project-unit">Unidad 1</p>
+                        <p>
+                            Implementación de un punto de venta interactivo. Utiliza JavaScript para manejar la selección de productos, calcular el subtotal, el IVA (16%) y el total de la compra en tiempo real, con funcionalidades de modificación y eliminación de filas.
+                        </p>
+                        <div class="project-tags">
+                            <span class="tag">JavaScript</span><span class="tag">DOM</span><span class="tag">Cálculo de IVA</span><span class="tag">Tablas Dinámicas</span>
+                        </div>
+                        <div class="project-actions">
+                            <a href="Proyectos/Punto de venta/index.html" class="btn btn-primary">Vista Previa</a>
+                            <a href="Proyectos/Punto de venta/index.html" target="_blank" class="btn btn-secondary">Pestaña Completa</a>
+                        </div>  
+                    </div>
+
+                    <div class="project-card">
+                        <h3>Crónica del Juego (CSS Grid)</h3>
+                        <p class="project-unit">Proyecto U2</p>
+                        <p>
+                            Maquetación avanzada que simula un periódico antiguo de estilo victoriano. Aplicación rigurosa de CSS Grid y Flexbox para crear diseños a varias columnas, secciones especiales (avisos clasificados) y el uso de fuentes personalizadas.
+                        </p>
+                        <div class="project-tags">
+                            <span class="tag">CSS Grid</span><span class="tag">Flexbox</span><span class="tag">Diseño Responsive</span><span class="tag">Animación CSS</span>
+                        </div>
+                        <div class="project-actions">
+                            <a href="Proyectos/Periodico Era Victoriana/index.html" class="btn btn-primary">Leer Edición</a>
+                            <a href="Proyectos/Periodico Era Victoriana/index.html" target="_blank" class="btn btn-secondary">Pestaña Completa</a>
+                        </div>
+                    </div>
+                    
+                    <div class="project-card">
+                        <h3>Editor Colaborativo P2P</h3>
+                        <p class="project-unit">Proyecto U3</p>
+                        <p>
+                            Editor de código en línea que permite la colaboración y sincronización de texto en tiempo real usando WebRTC (PeerJS). Incluye un intérprete básico para lenguajes como C, DOG y Chicken, mostrando cursores remotos.
+                        </p>
+                        <div class="project-tags">
+                            <span class="tag">JavaScript</span><span class="tag">P2P</span><span class="tag">WebRTC</span><span class="tag">Intérpretes</span>
+                        </div>
+                        <div class="project-actions">
+                            <a href="Proyectos/Compilador de C, DOG y CHICKEN/hola.html" class="btn btn-primary">Probar Editor</a>
+                            <a href="Proyectos/Compilador de C, DOG y CHICKEN/hola.html" target="_blank" class="btn btn-secondary">Pestaña Completa</a>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+        
+        <section id="contacto" class="contact section-padding">
+             <div class="container">
+                <h2>Contacto</h2>
+                <p>Puedes contactarme a través de mis redes sociales (ig: ale.bored) o enviando un mensaje por correo electrónico (2330222@upv.edu.mx).</p>
+             </div>
+        </section>
+
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 Alejandro Rodriguez. Desarrollado para la materia de Programación Web.</p>
+        </div>
+    </footer>
+
+    <div id="preview-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" id="close-modal">&times;</span>
+            <h3 id="modal-title">Vista Previa del Proyecto</h3>
+            <iframe id="preview-iframe" src="" frameborder="0"></iframe>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
